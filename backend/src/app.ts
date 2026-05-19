@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { prisma } from './lib/prisma.js';
 import authRoutes from './routes/auth.routes.js';
+import agentRoutes from './routes/agent.route.js';
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/agent', agentRoutes);
 
 app.get('/test', async (req, res) => {  
   try{
