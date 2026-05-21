@@ -1,5 +1,5 @@
 import api from './api';
-import { AuthResponse } from '../types';
+import type { AuthResponse } from '../types';
 
 export const signup = (name: string, email: string, password: string) =>
   api.post<AuthResponse>('/auth/signup', { name, email, password });

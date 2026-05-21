@@ -50,7 +50,7 @@ export const createNote = async (req: AuthRequest, res: Response): Promise<void>
 export const updateNote = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { title, content, appendMode } = req.body;
 
     const note = await noteService.update(userId, id, { title, content, appendMode });
@@ -68,7 +68,7 @@ export const updateNote = async (req: AuthRequest, res: Response): Promise<void>
 export const deleteNote = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     await noteService.delete(userId, id);
     res.status(204).send();
@@ -85,7 +85,7 @@ export const deleteNote = async (req: AuthRequest, res: Response): Promise<void>
 export const markNoteComplete = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const { id } = req.params;
+    const id = req.params.id as string;
 
     const note = await noteService.markCompleted(userId, id);
     res.status(200).json({ success: true, note });

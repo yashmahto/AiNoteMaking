@@ -1,5 +1,5 @@
 import api from './api';
-import { CreateNotePayload, UpdateNotePayload, NotesResponse, Note, NoteStatus } from '../types';
+import type { CreateNotePayload, UpdateNotePayload, NotesResponse, Note, NoteStatus } from '../types';
 
 export const getNotes = (status: NoteStatus = 'all', search?: string) => {
   const params: Record<string, string> = { status };
