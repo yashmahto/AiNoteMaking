@@ -33,7 +33,7 @@ export class AgentService {
     }
 
     const model = this.genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-flash-latest",
       systemInstruction: SYSTEM_PROMPT,
       tools: agentTools,
     });
@@ -41,7 +41,7 @@ export class AgentService {
     const history = memoryStore.getHistory(userId);
     const chat = model.startChat({ history });
 
-    const result = await chat.sendMessage(userPrompt);
+    const result = await retryWithBackoff(() => chat.sendMessage(userPrompt));
     let response = result.response;
     let functionCalls = response.functionCalls();
     let finalAction = null;
@@ -49,7 +49,7 @@ export class AgentService {
 
     // Agentic tool execution loop (supports multi-turn tool calling, e.g. search then update)
     while (functionCalls && functionCalls.length > 0) {
-      const functionResponses = [];
+      const functionResponses: any[] = [];
       for (const call of functionCalls) {
         const { name, args } = call;
         finalAction = name;
@@ -65,7 +65,7 @@ export class AgentService {
       }
 
       // Send the tool results back to Gemini
-      const nextResult = await chat.sendMessage(functionResponses);
+      const nextResult = await retryWithBackoff(() => chat.sendMessage(functionResponses));
       response = nextResult.response;
       functionCalls = response.functionCalls();
     }
@@ -108,5 +108,18 @@ export class AgentService {
     } catch (error: any) {
       return { error: error.message || "An error occurred executing the operation" };
     }
+  }
+}
+
+async function retryWithBackoff<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+  try {
+    return await fn();
+  } catch (error: any) {
+    if (retries <= 0 || (error.status !== 503 && error.status !== 429)) {
+      throw error;
+    }
+    console.warn(`Transient Gemini API error ${error.status} encountered. Retrying in ${delay}ms...`);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    return retryWithBackoff(fn, retries - 1, delay * 2);
   }
 }

@@ -40,6 +40,20 @@ export const handleQuery = async (req: AuthRequest, res: Response): Promise<void
     });
   } catch (error: any) {
     console.error("Agent query error:", error);
+    if (error.status === 429) {
+      res.status(429).json({
+        success: false,
+        message: "Gemini API quota exceeded or rate limited. Please try again shortly.",
+      });
+      return;
+    }
+    if (error.status === 503) {
+      res.status(503).json({
+        success: false,
+        message: "Gemini API is currently experiencing high demand. Please try again shortly.",
+      });
+      return;
+    }
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

@@ -27,7 +27,7 @@ An AI-powered, voice-enabled note-taking application designed to streamline note
 - **Language**: TypeScript (compiled with `tsx` development runner)
 - **Database**: [PostgreSQL](https://www.postgresql.org/)
 - **ORM**: [Prisma ORM](https://www.prisma.io/)
-- **AI Integration**: [@google/generative-ai](https://www.npmjs.com/package/@google/generative-ai) (`gemini-2.5-flash`)
+- **AI Integration**: [@google/generative-ai](https://www.npmjs.com/package/@google/generative-ai) (`gemini-flash-latest`)
 - **Authentication**: JWT (JSON Web Tokens), `bcrypt` password hashing, and cookie-based validation
 
 ---
