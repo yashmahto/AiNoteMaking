@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Auth } from './components/Auth';
+import { LandingPage } from './components/LandingPage';
 import { Dashboard } from './components/Dashboard';
 import { Toast } from './components/Toast';
 import { getMe } from './services/authService';
@@ -75,7 +75,7 @@ function App() {
           showToast={showToast}
         />
       ) : (
-        <Auth
+        <LandingPage
           onAuthSuccess={handleAuthSuccess}
           showToast={showToast}
         />

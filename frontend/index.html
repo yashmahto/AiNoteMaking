@@ -1,10 +1,62 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>ChirpNotes — Say Your Thoughts Out Loud &amp; Watch Them Become Neat, Colorful Notes</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka, Plus Jakarta Sans & Caveat -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        display: ['Fredoka', 'sans-serif'],
+                        hand: ['Caveat', 'cursive'],
+                    },
+                    colors: {
+                        cream: '#FFFDF8',
+                        charcoal: '#1E1E24',
+                        sunshine: '#FFD166',
+                        coral: '#FF6B6B',
+                        mint: '#06D6A0',
+                        sky: '#3A86FF',
+                        lavender: '#A855F7',
+                        tangerine: '#FF9F1C',
+                    },
+                    animation: {
+                        'float-slow': 'floatSlow 7s ease-in-out infinite',
+                        'float-delayed': 'floatSlow 8s ease-in-out 2s infinite',
+                        'wiggle': 'wiggle 2.5s ease-in-out infinite',
+                        'pop-in': 'popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                    },
+                    keyframes: {
+                        floatSlow: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-12px) rotate(2deg)' },
+                        },
+                        wiggle: {
+                            '0%, 100%': { transform: 'rotate(-3deg)' },
+                            '50%': { transform: 'rotate(3deg)' },
+                        },
+                        popIn: {
+                            '0%': { opacity: '0', transform: 'scale(0.8) translateY(16px)' },
+                            '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
   </head>
   <body>
     <div id="root"></div>
