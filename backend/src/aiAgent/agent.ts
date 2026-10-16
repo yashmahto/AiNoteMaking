@@ -33,7 +33,7 @@ export class AgentService {
     }
 
     const model = this.genAI.getGenerativeModel({
-      model: "gemini-flash-latest",
+      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
       systemInstruction: SYSTEM_PROMPT,
       tools: agentTools,
     });
