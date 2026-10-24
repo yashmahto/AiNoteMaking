@@ -20,28 +20,28 @@ const createNoteDeclaration: FunctionDeclaration = {
 
 const updateNoteDeclaration: FunctionDeclaration = {
   name: "update_note",
-  description: "Updates an existing note by its ID",
+  description: "Updates an existing note by its UUID or by title/topic keywords",
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
-      noteId: { type: SchemaType.STRING, description: "The exact UUID of the note to update" },
+      noteId: { type: SchemaType.STRING, description: "The UUID or title/keyword of the note to update" },
+      query: { type: SchemaType.STRING, description: "The title or keyword of the note to update (optional if noteId is provided)" },
       title: { type: SchemaType.STRING, description: "New title (optional)" },
       content: { type: SchemaType.STRING, description: "New or appended content (optional)" },
       appendMode: { type: SchemaType.BOOLEAN, description: "If true, append content instead of replacing it (optional)" },
     },
-    required: ["noteId"],
   },
 };
 
 const markCompletedDeclaration: FunctionDeclaration = {
   name: "mark_completed",
-  description: "Marks a note as completed by its ID",
+  description: "Marks an existing note as completed/done. Accepts either the note UUID (noteId) OR the note's title or topic keywords (query, e.g. 'dentist appointment', 'groceries', 'strawberries'). Automatic smart fuzzy matching will identify and check off the note.",
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
-      noteId: { type: SchemaType.STRING, description: "The UUID of the note to mark as completed" },
+      noteId: { type: SchemaType.STRING, description: "The UUID of the note if known, or title/keyword (optional)" },
+      query: { type: SchemaType.STRING, description: "The title, keyword, or topic of the note to mark complete (e.g. 'dentist', 'groceries', 'strawberries')" },
     },
-    required: ["noteId"],
   },
 };
 
@@ -61,11 +61,11 @@ const getNotesDeclaration: FunctionDeclaration = {
 
 const searchNotesDeclaration: FunctionDeclaration = {
   name: "search_notes",
-  description: "Searches notes by keyword in title or content",
+  description: "Searches the user's notes by keyword, topic, tag, or partial phrase (e.g. 'dentist', 'groceries', 'ideas'). Smart matching across titles, contents, and tags is applied.",
   parameters: {
     type: SchemaType.OBJECT,
     properties: {
-      keyword: { type: SchemaType.STRING, description: "Keyword to search for" },
+      keyword: { type: SchemaType.STRING, description: "Keyword or phrase to search for" },
     },
     required: ["keyword"],
   },

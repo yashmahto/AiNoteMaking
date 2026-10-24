@@ -13,6 +13,11 @@ export const getNotes = async (req: AuthRequest, res: Response): Promise<void> =
     let notes;
     if (search && search.trim()) {
       notes = await noteService.search(userId, search.trim());
+      if (status === "pending") {
+        notes = notes.filter((n) => !n.isCompleted);
+      } else if (status === "completed") {
+        notes = notes.filter((n) => n.isCompleted);
+      }
     } else {
       notes = await noteService.getAll(userId, status);
     }

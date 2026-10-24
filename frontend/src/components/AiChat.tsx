@@ -37,14 +37,14 @@ export const AiChat: React.FC<AiChatProps> = ({
 
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
       recognition.lang = 'en-US';
-      recognition.interimResults = false;
       recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsListening(true);
-        showToast('Listening...', 'info');
+        showToast('Listening to full sentence...', 'info');
       };
 
       recognition.onend = () => {
@@ -52,15 +52,18 @@ export const AiChat: React.FC<AiChatProps> = ({
       };
 
       recognition.onerror = (event: any) => {
+        if (event.error === 'no-speech' || event.error === 'aborted') return;
         console.error('Speech recognition error:', event.error);
         showToast(`Speech recognition error: ${event.error}`, 'error');
         setIsListening(false);
       };
 
       recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setInput(transcript);
-        showToast('Voice transcript captured!', 'success');
+        let fullTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          fullTranscript += event.results[i][0].transcript;
+        }
+        setInput(fullTranscript.trim());
       };
 
       recognitionRef.current = recognition;

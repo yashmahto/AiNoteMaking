@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { signup, login } from '../services/authService';
 import type { User } from '../types';
 
@@ -138,6 +138,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAuthSuccess, showToa
   const [isMiniWaveActive, setIsMiniWaveActive] = useState(false);
 
   const speechRecognitionRef = useRef<any>(null);
+  const boardVoiceTimerRef = useRef<any>(null);
+  const boardVoiceTranscriptRef = useRef<string>('');
+  const isBoardListeningRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    return () => {
+      if (boardVoiceTimerRef.current) {
+        clearTimeout(boardVoiceTimerRef.current);
+      }
+      if (speechRecognitionRef.current) {
+        try {
+          speechRecognitionRef.current.stop();
+        } catch (e) {}
+      }
+    };
+  }, []);
 
   // Open Auth Modal helper
   const openAuth = (mode: 'signin' | 'signup') => {
@@ -271,39 +287,80 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAuthSuccess, showToa
 
     // 1. Check off / Complete intent
     if (lower.includes('done') || lower.includes('check off') || lower.includes('complete') || lower.includes('finish')) {
-      let matched = false;
-      setBoardNotes((prev) =>
-        prev.map((n) => {
-          const titleMatch =
-            lower.includes('dog') && n.title.toLowerCase().includes('dog') ||
-            lower.includes('grocer') && n.title.toLowerCase().includes('strawberr') ||
-            lower.includes('book') && n.title.toLowerCase().includes('novel') ||
-            lower.includes('road trip') && n.title.toLowerCase().includes('playlist') ||
-            lower.includes('grandma') && n.title.toLowerCase().includes('grandma');
+      const target = lower
+        .replace(/\b(done|check\s+off|complete|completed|finish|finished|mark|as|the|notes?|tasks?|my|please)\b/gi, ' ')
+        .trim();
+      const tokens = target.split(/\s+/).filter((w) => w.length > 2);
 
-          if (titleMatch || lower.includes(n.title.toLowerCase().slice(0, 8))) {
-            matched = true;
-            return { ...n, completed: true, timestamp: 'Finished just now 🎉', isCelebrating: true };
-          }
-          return n;
-        })
-      );
+      let bestScore = -1;
+      let bestNoteId: string | null = null;
+      let bestNoteTitle = '';
 
-      if (matched) {
-        setBoardAssistantMsg(`Woohoo! Marked that task as finished 🎉 You're on a roll!`);
-        showToast('Task checked off!', 'success');
+      boardNotes.forEach((n) => {
+        let score = 0;
+        const titleLower = n.title.toLowerCase();
+        const contentLower = n.content.toLowerCase();
+        const tagLower = n.tag.toLowerCase();
+
+        if (target && (titleLower.includes(target) || target.includes(titleLower))) {
+          score += 60;
+        }
+
+        tokens.forEach((t) => {
+          if (titleLower.includes(t)) score += 30;
+          if (tagLower.includes(t)) score += 25;
+          if (contentLower.includes(t)) score += 15;
+          const stem = t.length > 4 ? t.slice(0, -2) : t;
+          if (titleLower.includes(stem)) score += 20;
+        });
+
+        // Prefer pending tasks
+        if (!n.completed) score += 10;
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestNoteId = n.id;
+          bestNoteTitle = n.title;
+        }
+      });
+
+      // If no keyword match found but user asked to finish/done, complete first pending note
+      if ((bestScore <= 0 || !bestNoteId) && boardNotes.some((n) => !n.completed)) {
+        const firstPending = boardNotes.find((n) => !n.completed);
+        if (firstPending) {
+          bestNoteId = firstPending.id;
+          bestNoteTitle = firstPending.title;
+          bestScore = 1;
+        }
+      }
+
+      if (bestNoteId && bestScore > 0) {
+        setBoardNotes((prev) =>
+          prev.map((n) =>
+            n.id === bestNoteId
+              ? { ...n, completed: true, timestamp: 'Finished just now 🎉', isCelebrating: true }
+              : n
+          )
+        );
+        setBoardAssistantMsg(`Woohoo! Marked "${bestNoteTitle}" as finished 🎉 You're on a roll!`);
+        showToast(`Task finished: ${bestNoteTitle}!`, 'success');
       } else {
-        setBoardAssistantMsg(`I checked off your matching errand! Great job getting it done.`);
+        setBoardAssistantMsg(`I couldn't find a matching note to complete. Check your list on the right!`);
       }
       setBoardInputText('');
       return;
     }
 
     // 2. Search / Find intent
-    if (lower.startsWith('find') || lower.startsWith('search')) {
-      const keyword = lower.replace(/^(find|search)\s+(my\s+)?/i, '').replace(/notes?|ideas?/gi, '').trim();
+    if (lower.startsWith('find') || lower.startsWith('search') || lower.includes('show') || lower.includes('look for')) {
+      const keyword = lower
+        .replace(/^(find|search|show\s+me|show|look\s+for)\s+(my\s+)?/i, '')
+        .replace(/\b(notes?|ideas?|errands?|all)\b/gi, '')
+        .trim();
       setBoardSearch(keyword);
-      setBoardAssistantMsg(`Found everything matching "${keyword}" on your sunny desk! 🔍`);
+      setBoardAssistantMsg(
+        keyword ? `Found matching notes for "${keyword}" on your sunny desk! 🔍` : 'Showing all your sticky notes! ✨'
+      );
       setBoardInputText('');
       return;
     }
@@ -348,10 +405,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAuthSuccess, showToa
 
   const toggleBoardVoice = () => {
     if (isBoardListening) {
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
+      if (boardVoiceTimerRef.current) {
+        clearTimeout(boardVoiceTimerRef.current);
+        boardVoiceTimerRef.current = null;
       }
       setIsBoardListening(false);
+      isBoardListeningRef.current = false;
+      if (speechRecognitionRef.current) {
+        try {
+          speechRecognitionRef.current.stop();
+        } catch (e) {}
+      }
+
+      const text = boardVoiceTranscriptRef.current.trim() || boardInputText.trim();
+      if (text) {
+        boardVoiceTranscriptRef.current = '';
+        handleBoardCommand(text);
+      }
       return;
     }
 
@@ -369,36 +439,89 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAuthSuccess, showToa
       return;
     }
 
+    if (boardVoiceTimerRef.current) {
+      clearTimeout(boardVoiceTimerRef.current);
+      boardVoiceTimerRef.current = null;
+    }
+    boardVoiceTranscriptRef.current = '';
+
     try {
       const recognition = new SpeechRecognition();
       speechRecognitionRef.current = recognition;
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
       recognition.lang = 'en-US';
+      recognition.maxAlternatives = 1;
 
       recognition.onstart = () => {
         setIsBoardListening(true);
-        setBoardAssistantMsg('Listening closely to your voice... 🎙️');
+        isBoardListeningRef.current = true;
+        setBoardAssistantMsg('Listening closely to your full sentence... 🎙️');
       };
 
       recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setIsBoardListening(false);
-        handleBoardCommand(transcript);
+        let fullTranscript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          fullTranscript += event.results[i][0].transcript;
+        }
+        fullTranscript = fullTranscript.trim();
+
+        if (fullTranscript) {
+          boardVoiceTranscriptRef.current = fullTranscript;
+          setBoardInputText(fullTranscript);
+          setBoardAssistantMsg(`Heard: "${fullTranscript}" (Auto-adding when you pause...)`);
+
+          if (boardVoiceTimerRef.current) {
+            clearTimeout(boardVoiceTimerRef.current);
+          }
+
+          boardVoiceTimerRef.current = setTimeout(() => {
+            if (isBoardListeningRef.current) {
+              isBoardListeningRef.current = false;
+              setIsBoardListening(false);
+              try {
+                recognition.stop();
+              } catch (e) {}
+
+              const text = boardVoiceTranscriptRef.current.trim();
+              if (text) {
+                boardVoiceTranscriptRef.current = '';
+                handleBoardCommand(text);
+              }
+            }
+          }, 1800);
+        }
       };
 
-      recognition.onerror = () => {
+      recognition.onerror = (event: any) => {
+        if (event.error === 'no-speech' || event.error === 'aborted') {
+          return;
+        }
+        if (boardVoiceTimerRef.current) clearTimeout(boardVoiceTimerRef.current);
         setIsBoardListening(false);
+        isBoardListeningRef.current = false;
         setBoardAssistantMsg("Couldn't hear clearly, try typing your note above!");
       };
 
       recognition.onend = () => {
-        setIsBoardListening(false);
+        if (isBoardListeningRef.current) {
+          const text = boardVoiceTranscriptRef.current.trim();
+          setIsBoardListening(false);
+          isBoardListeningRef.current = false;
+          if (boardVoiceTimerRef.current) clearTimeout(boardVoiceTimerRef.current);
+          if (text) {
+            boardVoiceTranscriptRef.current = '';
+            handleBoardCommand(text);
+          }
+        } else {
+          setIsBoardListening(false);
+        }
       };
 
       recognition.start();
     } catch (e) {
       setIsBoardListening(false);
+      isBoardListeningRef.current = false;
     }
   };
 
